@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/perun-network/perun-eth-demo/cmd/payment"
+
 	"github.com/pkg/errors"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
@@ -44,10 +46,11 @@ func newPaymentChannel(ch *client.Channel) *paymentChannel {
 		lastState: ch.State(),
 	}
 }
-func (ch *paymentChannel) sendMoney(amount *big.Int) error {
+func (ch *paymentChannel) sendMoney(amount *big.Int, invoiceId *payment.Invoice) error {
 	return ch.sendUpdate(
 		func(state *channel.State) error {
 			transferBal(stateBals(state), ch.Idx(), amount)
+			state.Data = invoiceId
 			return nil
 		}, "sendMoney")
 }
@@ -109,6 +112,7 @@ func (ch *paymentChannel) Handle(update client.ChannelUpdate, res *client.Update
 	if balChanged {
 		bals := weiToEther(update.State.Allocation.Balances[0]...)
 		PrintfAsync("💰 Received payment. New balance: [My: %v Ξ, Peer: %v Ξ]\n", bals[ch.Idx()], bals[1-ch.Idx()])
+		PrintfAsync("InvoiceId: %v\n", *update.State.Data.(*payment.Invoice))
 	}
 	ch.lastState = update.State.Clone()
 }
@@ -116,8 +120,8 @@ func (ch *paymentChannel) Handle(update client.ChannelUpdate, res *client.Update
 // assertValidTransition checks that money flows only from the actor to the
 // other participants.
 func assertValidTransition(from, to *channel.State, actor channel.Index) error {
-	if !channel.IsNoData(to.Data) {
-		return errors.New("channel must not have app data")
+	if _, ok := to.Data.(*payment.Invoice); !ok {
+		return errors.New("channel must have invoice as app data")
 	}
 	for i, asset := range from.Balances {
 		for j, bal := range asset {

@@ -15,6 +15,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/ethereum/go-ethereum/common"
+	payment2 "github.com/perun-network/perun-eth-demo/cmd/payment"
 	"github.com/pkg/errors"
 
 	_ "perun.network/go-perun/backend/ethereum" // backend init
@@ -305,12 +306,15 @@ func (n *node) Open(args []string) error {
 		Balances: [][]*big.Int{etherToWei(myBalEth, peerBalEth)},
 	}
 
+	app := payment2.App{}
+	i := payment2.Invoice([32]byte{})
 	prop, err := client.NewLedgerChannelProposal(
 		config.Channel.ChallengeDurationSec,
 		n.offChain.Address(),
 		initBals,
 		[]wire.Address{n.onChain.Address(), peer.perunID},
 		client.WithRandomNonce(),
+		client.WithApp(&app, &i),
 	)
 	if err != nil {
 		return errors.WithMessage(err, "creating channel proposal")
@@ -343,7 +347,10 @@ func (n *node) Send(args []string) error {
 		return errors.Errorf("connect to peer first")
 	}
 	amountEth, _ := new(big.Float).SetString(args[1]) // Input was already validated by command parser.
-	return peer.ch.sendMoney(etherToWei(amountEth)[0])
+
+	testInvoice := payment2.Invoice([32]byte{1, 2, 3, 4, 5})
+
+	return peer.ch.sendMoney(etherToWei(amountEth)[0], &testInvoice)
 }
 
 func (n *node) Close(args []string) error {

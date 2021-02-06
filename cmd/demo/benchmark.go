@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/montanaflynn/stats"
+	payment2 "github.com/perun-network/perun-eth-demo/cmd/payment"
 	"github.com/pkg/errors"
 )
 
@@ -55,6 +56,7 @@ func (n *node) Benchmark(args []string) error {
 	totalAmountEth, _ := strconv.Atoi(args[1])
 	txCount, _ := strconv.Atoi(args[2])
 	var r run
+	var invoiceId payment2.Invoice
 
 	if txCount < 1 {
 		return errors.New("Number of runs cant be less than 1")
@@ -68,7 +70,7 @@ func (n *node) Benchmark(args []string) error {
 	txAmount := new(big.Int).Div(totalAmountWei, big.NewInt(int64(txCount)))
 	for i := 0; i < txCount; i++ {
 		r.Start()
-		if err := peer.ch.sendMoney(txAmount); err != nil {
+		if err := peer.ch.sendMoney(txAmount, &invoiceId); err != nil {
 			return errors.WithMessage(err, "could not send update")
 		}
 		r.Stop()

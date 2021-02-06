@@ -18,11 +18,13 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
+	"github.com/perun-network/perun-eth-demo/cmd/payment"
 	"github.com/pkg/errors"
 
 	echannel "perun.network/go-perun/backend/ethereum/channel"
 	ewallet "perun.network/go-perun/backend/ethereum/wallet"
 	phd "perun.network/go-perun/backend/ethereum/wallet/hd"
+	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence/keyvalue"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
@@ -80,6 +82,9 @@ func (n *node) setup() error {
 	if err := n.setupContracts(); err != nil {
 		return errors.WithMessage(err, "setting up contracts")
 	}
+
+	app := &payment.App{}
+	channel.RegisterApp(app)
 
 	var err error
 
